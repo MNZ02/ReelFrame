@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="225" viewBox="0 0 400 225">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="hsl(91, 65%, 22%)" />
+      <stop offset="100%" stop-color="hsl(157, 70%, 34%)" />
+    </linearGradient>
+    <radialGradient id="r" cx="70%" cy="20%" r="80%">
+      <stop offset="0%" stop-color="hsl(157, 90%, 60%)" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="hsl(157, 90%, 60%)" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="400" height="225" fill="url(#g)" />
+  <rect width="400" height="225" fill="url(#r)" />
+  <circle cx="200" cy="90" r="34" fill="none" stroke="white" stroke-opacity="0.55" stroke-width="2" />
+  <circle cx="200" cy="90" r="12" fill="white" fill-opacity="0.85" />
+  <text x="24" y="188" font-family="ui-sans-serif, system-ui, sans-serif" font-size="22" font-weight="600" fill="white" fill-opacity="0.92">Overhead Top-Down</text>
+</svg>

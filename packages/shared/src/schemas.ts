@@ -14,6 +14,7 @@ export const generationStatusSchema = z.enum([
   "failed",
   "canceled",
 ]);
+export type GenerationStatus = z.infer<typeof generationStatusSchema>;
 export const ledgerReasonSchema = z.enum([
   "signup_grant",
   "generation",
