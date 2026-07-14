@@ -1,0 +1,40 @@
+{
+  "name": "api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n api,worker -c blue,magenta \"bun run --watch src/index.ts\" \"bun run --watch src/worker.ts\"",
+    "start:api": "bun run src/index.ts",
+    "start:worker": "bun run src/worker.ts",
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit",
+    "build": "tsc --noEmit",
+    "test": "bun test tests",
+    "db:seed": "bun run scripts/seed.ts",
+    "smoke": "bun run scripts/smoke.ts",
+    "generate-sample": "bun run scripts/generate-sample.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.1086.0",
+    "@aws-sdk/s3-request-presigner": "3.1086.0",
+    "@repo/db": "workspace:*",
+    "@repo/shared": "workspace:*",
+    "better-auth": "1.6.23",
+    "drizzle-orm": "0.45.2",
+    "ffmpeg-static": "5.3.0",
+    "hono": "4.12.30",
+    "pg": "8.22.0",
+    "pg-boss": "12.26.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/bun": "latest",
+    "@types/pg": "8.20.0",
+    "concurrently": "10.0.3",
+    "eslint": "^9.39.1",
+    "typescript": "5.9.2"
+  }
+}
