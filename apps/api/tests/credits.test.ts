@@ -6,7 +6,7 @@ import { db } from "../src/db";
 import { getBalance } from "../src/lib/credits";
 import { createGeneration } from "../src/lib/create-generation";
 import { cancelGeneration } from "../src/lib/cancel-generation";
-import { failGeneration } from "../src/pipeline";
+import { failGeneration, handleExhaustedRetries, isFinalAttempt } from "../src/pipeline";
 import { createTestUser, deleteTestUser, grantCredits } from "./helpers";
 
 const DURATION_SECS = 5;
@@ -107,6 +107,65 @@ describe("credit ledger", () => {
     expect(row!.status).toBe("failed");
     expect(row!.errorMessage).toBe("provider exploded");
     expect(await getBalance(db, userId)).toBe(COST);
+  });
+
+  test("refund: retry exhaustion (transient errors) marks failed and refunds, exactly like a timeout", async () => {
+    const userId = await freshUser(COST);
+    const generation = await createGeneration({
+      userId,
+      prompt: "will keep throwing transient errors",
+      model: DEFAULT_MODEL_SLUG,
+      aspectRatio: "16:9",
+      durationSecs: DURATION_SECS,
+    });
+    expect(await getBalance(db, userId)).toBe(0);
+
+    // Simulate what processGeneration does before a transient error: the
+    // generation is left in `processing`, mid-flight, when the worker's
+    // final retry attempt throws.
+    await db
+      .update(schema.generations)
+      .set({ status: "processing", startedAt: new Date() })
+      .where(eq(schema.generations.id, generation.id));
+
+    await handleExhaustedRetries(generation.id, new Error("S3 put failed after retries"));
+
+    const [row] = await db.select().from(schema.generations).where(eq(schema.generations.id, generation.id));
+    expect(row!.status).toBe("failed");
+    expect(row!.errorMessage).toContain("S3 put failed after retries");
+    expect(await getBalance(db, userId)).toBe(COST);
+  });
+
+  test("refund: retry exhaustion is idempotent — no double refund if already terminal", async () => {
+    const userId = await freshUser(COST);
+    const generation = await createGeneration({
+      userId,
+      prompt: "already handled elsewhere",
+      model: DEFAULT_MODEL_SLUG,
+      aspectRatio: "16:9",
+      durationSecs: DURATION_SECS,
+    });
+
+    // Generation already reached a terminal state (e.g. it actually
+    // succeeded, or the timeout path already refunded it) before the
+    // worker's final-attempt catch block ran.
+    await failGeneration(generation.id, userId, generation.creditsCost, "already failed once");
+    expect(await getBalance(db, userId)).toBe(COST);
+
+    await handleExhaustedRetries(generation.id, new Error("late duplicate error"));
+
+    // Balance must not have been refunded a second time.
+    expect(await getBalance(db, userId)).toBe(COST);
+    const [row] = await db.select().from(schema.generations).where(eq(schema.generations.id, generation.id));
+    expect(row!.errorMessage).toBe("already failed once");
+  });
+
+  test("isFinalAttempt: true only once retryCount has caught up to retryLimit", () => {
+    expect(isFinalAttempt({ retryCount: 0, retryLimit: 2 })).toBe(false);
+    expect(isFinalAttempt({ retryCount: 1, retryLimit: 2 })).toBe(false);
+    expect(isFinalAttempt({ retryCount: 2, retryLimit: 2 })).toBe(true);
+    expect(isFinalAttempt({ retryCount: 3, retryLimit: 2 })).toBe(true);
+    expect(isFinalAttempt({ retryCount: 0, retryLimit: 0 })).toBe(true);
   });
 
   test("concurrent double-spend is prevented: balance never goes negative", async () => {

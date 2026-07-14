@@ -150,6 +150,51 @@ export async function processGeneration(generationId: string): Promise<void> {
     .where(eq(schema.generations.id, generationId));
 }
 
+/**
+ * True once a job has used up every retry pg-boss will grant it (i.e. this
+ * is its last attempt) — the same `retryCount < retryLimit` comparison
+ * pg-boss itself uses to decide retry vs. terminal-fail. A pure function so
+ * the decision is unit-testable without a live pg-boss job.
+ */
+export function isFinalAttempt(job: { retryCount: number; retryLimit: number }): boolean {
+  return job.retryCount >= job.retryLimit;
+}
+
+/**
+ * Called by the worker when a job throws on its last allowed attempt (pg-boss
+ * will not retry it again). Mirrors the poll-timeout / provider-failure
+ * paths in processGeneration: mark the generation failed with an
+ * error_message and refund its cost — retry exhaustion must not leave a
+ * generation stuck in `processing` with credits never returned. Idempotent:
+ * a no-op if the generation already reached a terminal status by some other
+ * path (e.g. it actually succeeded right before this error surfaced).
+ */
+export async function handleExhaustedRetries(generationId: string, cause: unknown): Promise<void> {
+  const [generation] = await db
+    .select()
+    .from(schema.generations)
+    .where(eq(schema.generations.id, generationId));
+
+  if (!generation) {
+    console.warn(`[worker] generation ${generationId} not found while handling exhausted retries`);
+    return;
+  }
+  if (TERMINAL_STATUSES.has(generation.status)) {
+    console.log(
+      `[worker] generation ${generationId} already ${generation.status}, not refunding a second time`,
+    );
+    return;
+  }
+
+  const causeMessage = cause instanceof Error ? cause.message : String(cause);
+  await failGeneration(
+    generationId,
+    generation.userId,
+    generation.creditsCost,
+    `Failed after exhausting retries: ${causeMessage}`,
+  );
+}
+
 // Exported for unit testing; also the terminal path from processGeneration.
 export async function failGeneration(
   generationId: string,
