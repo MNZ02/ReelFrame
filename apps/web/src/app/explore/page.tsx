@@ -1,18 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import type { GenerationResponse } from "@repo/shared";
-import { useMe } from "@/lib/hooks/use-me";
 import { useExplore } from "@/lib/hooks/use-explore";
 import { ExploreCard } from "@/components/explore/explore-card";
 import { ExploreDetailDialog } from "@/components/explore/explore-detail-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
 
 export default function ExplorePage() {
-  const { isAuthenticated, sessionPending } = useMe();
-  const { data, isLoading } = useExplore(isAuthenticated);
+  const { data, isLoading } = useExplore();
   const [selected, setSelected] = useState<GenerationResponse | null>(null);
 
   return (
@@ -24,19 +20,7 @@ export default function ExplorePage() {
         </p>
       </div>
 
-      {!sessionPending && !isAuthenticated ? (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border py-16 text-center">
-          <p className="text-muted-foreground">Sign in to browse the public Explore feed.</p>
-          <div className="flex gap-3">
-            <Link href="/login">
-              <Button variant="outline">Log in</Button>
-            </Link>
-            <Link href="/signup">
-              <Button>Sign up</Button>
-            </Link>
-          </div>
-        </div>
-      ) : isLoading ? (
+      {isLoading ? (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {Array.from({ length: 8 }).map((_, i) => (
             <Skeleton key={i} className="aspect-video w-full" />

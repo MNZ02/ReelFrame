@@ -1,9 +1,9 @@
 import { Hono } from "hono";
 import { MOTION_PRESETS } from "@repo/shared";
-import { requireSession } from "../middleware/session";
 
 export const presetRoutes = new Hono();
 
-presetRoutes.get("/presets", requireSession, (c) => {
+// Public: static catalog data, no user-private information.
+presetRoutes.get("/presets", (c) => {
   return c.json(MOTION_PRESETS);
 });

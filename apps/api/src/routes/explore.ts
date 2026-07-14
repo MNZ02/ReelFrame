@@ -3,14 +3,16 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { schema } from "@repo/db";
 import { ApiError, exploreQuerySchema, type ListGenerationsResponse } from "@repo/shared";
 import { db } from "../db";
-import { requireSession } from "../middleware/session";
 import { parse } from "../lib/validate";
 import { loadGenerationAssets, serializeGeneration } from "../lib/serialize";
 import { encodeCursor, decodeCursor } from "../lib/cursor";
 
 export const exploreRoutes = new Hono();
 
-exploreRoutes.get("/explore", requireSession, async (c) => {
+// Public: no session required. Only ever returns succeeded + is_public rows,
+// and serializeGeneration never includes user-identifying fields (no email,
+// no user id), so this is safe to expose to anonymous visitors.
+exploreRoutes.get("/explore", async (c) => {
   const query = parse(exploreQuerySchema, {
     cursor: c.req.query("cursor"),
     limit: c.req.query("limit"),
