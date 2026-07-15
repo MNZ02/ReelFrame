@@ -76,6 +76,14 @@ export async function presignGetUrlForProvider(objectKey: string, expiresInSecon
   return getSignedUrl(s3Public, command, { expiresIn: expiresInSeconds });
 }
 
+export async function getObjectBuffer(objectKey: string): Promise<Buffer> {
+  const res = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: objectKey }));
+  if (!res.Body) {
+    throw new Error(`Object ${objectKey} has no body`);
+  }
+  return Buffer.from(await res.Body.transformToByteArray());
+}
+
 export async function putObject(objectKey: string, body: Buffer | Uint8Array, contentType: string): Promise<void> {
   await s3.send(
     new PutObjectCommand({

@@ -2,6 +2,7 @@ export type AspectRatio = "16:9" | "9:16" | "1:1";
 
 export interface VideoProviderSubmitRequest {
   prompt: string;
+  negativePrompt?: string;
   sourceImageUrl?: string;
   aspectRatio: AspectRatio;
   durationSecs: number;

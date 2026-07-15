@@ -34,6 +34,9 @@ export class FalProvider implements VideoProvider {
       aspect_ratio: req.aspectRatio,
       duration: req.durationSecs,
     };
+    if (req.negativePrompt) {
+      input.negative_prompt = req.negativePrompt;
+    }
     if (req.sourceImageUrl) {
       input.image_url = req.sourceImageUrl;
     }

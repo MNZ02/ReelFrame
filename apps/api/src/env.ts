@@ -36,6 +36,14 @@ export const env = {
     (process.env.VIDEO_PROVIDER ?? "mock") === "replicate"
       ? required("REPLICATE_API_TOKEN")
       : (process.env.REPLICATE_API_TOKEN ?? ""),
+  // Prompt enhancement. "rule" (default) uses the deterministic in-repo
+  // builder — no network, no key. "llm" additionally rewrites the positive
+  // prompt via an OpenAI-compatible chat API (OpenRouter/OpenAI/etc.), and
+  // requires LLM_API_KEY; it falls back to rule-based on any error.
+  PROMPT_ENHANCER: (process.env.PROMPT_ENHANCER ?? "rule") as "rule" | "llm",
+  LLM_API_KEY: process.env.LLM_API_KEY ?? "",
+  LLM_BASE_URL: process.env.LLM_BASE_URL ?? "https://openrouter.ai/api/v1",
+  LLM_MODEL: process.env.LLM_MODEL ?? "anthropic/claude-3.5-haiku",
   API_PORT: Number(process.env.API_PORT ?? 4000),
   WEB_URL: process.env.WEB_URL ?? "http://localhost:3000",
 } as const;

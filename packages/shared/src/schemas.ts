@@ -77,6 +77,7 @@ export type MediaAssetResponse = z.infer<typeof mediaAssetResponseSchema>;
 // ---- /generations ----
 export const createGenerationRequestSchema = z.object({
   prompt: z.string().min(1).max(2000),
+  negativePrompt: z.string().max(1000).nullable().optional(),
   motionPreset: z.string().nullable().optional(),
   model: z.string(),
   aspectRatio: aspectRatioSchema,
@@ -91,6 +92,7 @@ export const generationResponseSchema = z.object({
   status: generationStatusSchema,
   prompt: z.string(),
   enhancedPrompt: z.string().nullable(),
+  negativePrompt: z.string().nullable(),
   motionPreset: z.string().nullable(),
   model: z.string(),
   provider: z.enum(["fal", "mock", "replicate"]),

@@ -25,6 +25,7 @@ generationRoutes.post("/generations", requireSession, async (c) => {
   const generation = await createGeneration({
     userId: session.user.id,
     prompt: body.prompt,
+    negativePrompt: body.negativePrompt ?? null,
     motionPreset: body.motionPreset ?? null,
     model: body.model,
     aspectRatio: body.aspectRatio,

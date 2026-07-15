@@ -3,7 +3,13 @@
 import { useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { DEFAULT_MODEL_SLUG, getCreditsCost, type MediaAssetResponse, type AspectRatio } from "@repo/shared";
+import {
+  DEFAULT_MODEL_SLUG,
+  getCreditsCost,
+  buildEnhancedPrompt,
+  type MediaAssetResponse,
+  type AspectRatio,
+} from "@repo/shared";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -28,6 +34,7 @@ function CreateForm() {
   const createGeneration = useCreateGeneration();
 
   const [prompt, setPrompt] = useState(searchParams.get("prompt") ?? "");
+  const [negativePrompt, setNegativePrompt] = useState("");
   const [preset, setPreset] = useState<string | null>(searchParams.get("preset"));
   const [model, setModel] = useState(searchParams.get("model") ?? DEFAULT_MODEL_SLUG);
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>("16:9");
@@ -55,6 +62,14 @@ function CreateForm() {
 
   const creditsCost = useMemo(() => getCreditsCost(model, durationSecs) ?? 0, [model, durationSecs]);
 
+  const promptPreview = useMemo(
+    () =>
+      prompt.trim()
+        ? buildEnhancedPrompt({ prompt, motionPreset: preset, negativePrompt })
+        : null,
+    [prompt, preset, negativePrompt],
+  );
+
   async function handleGenerate() {
     if (!prompt.trim()) {
       toast.error("Write a prompt first");
@@ -63,6 +78,7 @@ function CreateForm() {
     try {
       const generation = await createGeneration.mutateAsync({
         prompt: prompt.trim(),
+        negativePrompt: negativePrompt.trim() || null,
         motionPreset: preset,
         model,
         aspectRatio,
@@ -100,6 +116,29 @@ function CreateForm() {
                 <Label>Start image (optional)</Label>
                 <ImageDropzone value={sourceImage} onChange={setSourceImage} />
               </div>
+
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="negative-prompt">Negative prompt (optional)</Label>
+                <Textarea
+                  id="negative-prompt"
+                  value={negativePrompt}
+                  onChange={(e) => setNegativePrompt(e.target.value)}
+                  placeholder="Things to avoid — e.g. text, watermark, extra fingers…"
+                  rows={2}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Added on top of sensible defaults that suppress common AI-video artifacts.
+                </p>
+              </div>
+
+              {promptPreview && (
+                <div className="flex flex-col gap-1 rounded-md border border-border bg-muted/40 p-3">
+                  <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Enhanced prompt preview
+                  </span>
+                  <p className="text-sm text-foreground">{promptPreview.enhancedPrompt}</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

@@ -53,6 +53,7 @@ export async function serializeGeneration(
     status: row.status,
     prompt: row.prompt,
     enhancedPrompt: row.enhancedPrompt,
+    negativePrompt: row.negativePrompt,
     motionPreset: row.motionPreset,
     model: row.model,
     provider: row.provider,

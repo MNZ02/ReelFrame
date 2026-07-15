@@ -1,7 +1,6 @@
 import { schema } from "@repo/db";
 import {
   ApiError,
-  applyMotionPreset,
   getCreditsCost,
   getModel,
   isModelAvailableForProvider,
@@ -11,11 +10,13 @@ import { db } from "../db";
 import { env } from "../env";
 import { getBalance, lockUserForCredits } from "./credits";
 import { getOwnedSourceImage } from "../routes/uploads";
+import { enhancePrompt } from "./prompt-enhancer";
 import { getBoss, GENERATION_QUEUE } from "../queue";
 
 export interface CreateGenerationInput {
   userId: string;
   prompt: string;
+  negativePrompt?: string | null;
   motionPreset?: string | null;
   model: string;
   aspectRatio: AspectRatio;
@@ -81,7 +82,11 @@ export async function createGeneration(input: CreateGenerationInput): Promise<Ge
     }
   }
 
-  const enhancedPrompt = applyMotionPreset(input.prompt, input.motionPreset);
+  const { enhancedPrompt, negativePrompt } = await enhancePrompt({
+    prompt: input.prompt,
+    motionPreset: input.motionPreset,
+    negativePrompt: input.negativePrompt,
+  });
 
   const generation = await db.transaction(
     async (tx) => {
@@ -97,6 +102,7 @@ export async function createGeneration(input: CreateGenerationInput): Promise<Ge
           userId: input.userId,
           prompt: input.prompt,
           enhancedPrompt,
+          negativePrompt,
           motionPreset: input.motionPreset ?? null,
           model: input.model,
           provider: env.VIDEO_PROVIDER,

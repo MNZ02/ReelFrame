@@ -7,8 +7,15 @@ import type { VideoProviderPollResult } from "@repo/shared";
 import { db } from "./db";
 import { selectProvider } from "./providers";
 import { MOCK_SAMPLE_URL } from "./providers/mock";
-import { presignGetUrl, presignGetUrlForProvider, putObject, BUCKET } from "./lib/s3";
-import { videoKey, thumbnailKey } from "./lib/object-keys";
+import {
+  presignGetUrl,
+  presignGetUrlForProvider,
+  getObjectBuffer,
+  putObject,
+  BUCKET,
+} from "./lib/s3";
+import { videoKey, thumbnailKey, normalizedSourceKey } from "./lib/object-keys";
+import { normalizeSourceImage } from "./lib/image";
 import { extractThumbnail } from "./lib/ffmpeg";
 
 const POLL_INTERVAL_MS = 5_000;
@@ -57,20 +64,28 @@ export async function processGeneration(generationId: string): Promise<void> {
       .select()
       .from(schema.mediaAssets)
       .where(eq(schema.mediaAssets.id, generation.sourceImageId));
-    // Mock ignores the URL, so keep it on the (localhost) internal endpoint;
-    // real providers must fetch it from their cloud, so sign it against the
+    // Mock ignores the URL, so keep the untouched original on the (localhost)
+    // internal endpoint. Real providers read raw pixels and fetch from their
+    // cloud, so normalize the image first (bake EXIF orientation, crop to the
+    // chosen aspect ratio, downscale) and sign the normalized copy against the
     // public endpoint (tunnel). The create-time guard guarantees a public
     // endpoint exists whenever a real provider generation carries an image.
     if (asset) {
-      sourceImageUrl =
-        generation.provider === "mock"
-          ? await presignGetUrl(asset.objectKey)
-          : await presignGetUrlForProvider(asset.objectKey);
+      if (generation.provider === "mock") {
+        sourceImageUrl = await presignGetUrl(asset.objectKey);
+      } else {
+        const original = await getObjectBuffer(asset.objectKey);
+        const normalized = await normalizeSourceImage(original, generation.aspectRatio);
+        const normalizedKey = normalizedSourceKey(generation.userId, generation.id);
+        await putObject(normalizedKey, normalized.buffer, normalized.contentType);
+        sourceImageUrl = await presignGetUrlForProvider(normalizedKey);
+      }
     }
   }
 
   const { providerJobId } = await provider.submit({
     prompt: generation.enhancedPrompt ?? generation.prompt,
+    negativePrompt: generation.negativePrompt ?? undefined,
     sourceImageUrl,
     aspectRatio: generation.aspectRatio,
     durationSecs: generation.durationSecs,

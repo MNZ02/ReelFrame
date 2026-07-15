@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { schema } from "@repo/db";
-import { DEFAULT_MODEL_SLUG, getCreditsCost, MOTION_PRESETS } from "@repo/shared";
+import { DEFAULT_MODEL_SLUG, getCreditsCost, MOTION_PRESETS, buildEnhancedPrompt } from "@repo/shared";
 import { auth } from "../src/auth";
 import { db, pool } from "../src/db";
 import { putObject, BUCKET } from "../src/lib/s3";
@@ -109,10 +109,10 @@ async function seedGenerations(userId: string): Promise<void> {
       userId,
       status: "succeeded",
       prompt: `A cinematic shot demonstrating the ${preset.name} preset`,
-      enhancedPrompt: preset.promptTemplate.replace(
-        "{prompt}",
-        "a neon-lit city street at night",
-      ),
+      enhancedPrompt: buildEnhancedPrompt({
+        prompt: "a neon-lit city street at night",
+        motionPreset: preset.slug,
+      }).enhancedPrompt,
       motionPreset: preset.slug,
       model,
       provider: "mock",

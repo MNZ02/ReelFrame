@@ -114,6 +114,7 @@ export const generations = pgTable("generations", {
   status: generationStatusEnum("status").notNull().default("queued"),
   prompt: text("prompt").notNull(),
   enhancedPrompt: text("enhanced_prompt"),
+  negativePrompt: text("negative_prompt"),
   motionPreset: text("motion_preset"),
   model: text("model").notNull(),
   provider: generationProviderEnum("provider").notNull(),

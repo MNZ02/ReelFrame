@@ -4,6 +4,13 @@ export function sourceImageKey(userId: string, ext: string): string {
   return `sources/${userId}/${randomUUID()}.${ext}`;
 }
 
+// Provider-ready (orientation-baked, aspect-fit) copy of a source image, keyed
+// by generation so a re-run overwrites it. Distinct from the untouched
+// original upload under `sources/{userId}/…`.
+export function normalizedSourceKey(userId: string, generationId: string): string {
+  return `sources/${userId}/normalized/${generationId}.jpg`;
+}
+
 export function videoKey(userId: string, generationId: string): string {
   return `videos/${userId}/${generationId}.mp4`;
 }
