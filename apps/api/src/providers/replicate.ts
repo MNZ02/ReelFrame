@@ -3,9 +3,14 @@ import type {
   VideoProviderPollResult,
   VideoProviderSubmitRequest,
 } from "@repo/shared";
+import { classifyProviderHttpError, parseRetryAfterSeconds, ProviderError } from "./provider-error";
 
 const REPLICATE_API_BASE = "https://api.replicate.com/v1";
 const MODEL_PATH = "minimax/video-01";
+const SUBMIT_MAX_ATTEMPTS = 4;
+const MAX_RETRY_WAIT_MS = 30_000;
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
  * Replicate predictions API (submit -> poll), documented at
@@ -45,17 +50,36 @@ export class ReplicateProvider implements VideoProvider {
     if (req.sourceImageUrl) {
       input.first_frame_image = req.sourceImageUrl;
     }
+    const body = JSON.stringify({ input });
 
-    const res = await fetch(`${REPLICATE_API_BASE}/models/${MODEL_PATH}/predictions`, {
-      method: "POST",
-      headers: this.headers(),
-      body: JSON.stringify({ input }),
-    });
-    if (!res.ok) {
-      throw new Error(`Replicate submit failed: ${res.status} ${await res.text()}`);
+    // Retry only on rate limits (429), respecting Retry-After — Replicate's
+    // free tier is capped at 6 req/min, burst 1. Any other error is classified
+    // (402 quota / 401 auth / 4xx) and thrown as a ProviderError so the
+    // pipeline can fail fast with a clean message instead of retrying.
+    for (let attempt = 1; attempt <= SUBMIT_MAX_ATTEMPTS; attempt++) {
+      const res = await fetch(`${REPLICATE_API_BASE}/models/${MODEL_PATH}/predictions`, {
+        method: "POST",
+        headers: this.headers(),
+        body,
+      });
+      if (res.ok) {
+        const parsed = (await res.json()) as { id: string };
+        return { providerJobId: parsed.id };
+      }
+
+      const text = await res.text();
+      if (res.status === 429 && attempt < SUBMIT_MAX_ATTEMPTS) {
+        const waitMs = Math.min((parseRetryAfterSeconds(res.headers, text) ?? 5) * 1000 + 500, MAX_RETRY_WAIT_MS);
+        console.warn(`[replicate] rate-limited (attempt ${attempt}/${SUBMIT_MAX_ATTEMPTS}), waiting ${waitMs}ms`);
+        await sleep(waitMs);
+        continue;
+      }
+      throw classifyProviderHttpError("Replicate", res.status, text);
     }
-    const body = (await res.json()) as { id: string };
-    return { providerJobId: body.id };
+    throw new ProviderError("Replicate is rate-limiting requests; please try again shortly.", {
+      terminal: false,
+      status: 429,
+    });
   }
 
   async poll(providerJobId: string): Promise<VideoProviderPollResult> {

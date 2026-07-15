@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Download, RefreshCw } from "lucide-react";
+import { Download, RefreshCw, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { StatusBadge } from "@/components/generation/status-badge";
 import { Button } from "@/components/ui/button";
@@ -55,12 +55,21 @@ export function GenerationDetail({ id }: { id: string }) {
             className="size-full object-contain"
           />
         ) : (
-          <div className="flex size-full flex-col items-center justify-center gap-2 text-muted-foreground">
+          <div className="flex size-full flex-col items-center justify-center gap-3 px-6 text-muted-foreground">
             <StatusBadge status={generation.status} />
-            {generation.status === "failed" && generation.errorMessage && (
-              <p className="max-w-md px-4 text-center text-sm text-destructive">
-                {generation.errorMessage}
-              </p>
+            {generation.status === "failed" && (
+              <div className="flex max-w-lg items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-left">
+                <AlertTriangle className="mt-0.5 size-5 shrink-0 text-destructive" />
+                <div className="flex flex-col gap-1">
+                  <p className="text-sm font-medium text-destructive">Generation failed</p>
+                  <p className="text-sm text-foreground/90">
+                    {generation.errorMessage ?? "Something went wrong while generating this video."}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Your {generation.creditsCost} credits were refunded.
+                  </p>
+                </div>
+              </div>
             )}
             {(generation.status === "queued" || generation.status === "processing") && (
               <p className="text-sm">Your video is being generated — this updates automatically.</p>

@@ -132,7 +132,39 @@ describe("credit ledger", () => {
 
     const [row] = await db.select().from(schema.generations).where(eq(schema.generations.id, generation.id));
     expect(row!.status).toBe("failed");
-    expect(row!.errorMessage).toContain("S3 put failed after retries");
+    // Raw internal error text must NOT reach the user-facing error_message —
+    // a plain Error becomes a clean generic message.
+    expect(row!.errorMessage).not.toContain("S3 put");
+    expect(row!.errorMessage).toContain("Generation failed after several attempts");
+    expect(await getBalance(db, userId)).toBe(COST);
+  });
+
+  test("refund: retry exhaustion surfaces a ProviderError's clean user message", async () => {
+    const userId = await freshUser(COST);
+    const generation = await createGeneration({
+      userId,
+      prompt: "provider ran out of quota",
+      model: DEFAULT_MODEL_SLUG,
+      aspectRatio: "16:9",
+      durationSecs: DURATION_SECS,
+    });
+    await db
+      .update(schema.generations)
+      .set({ status: "processing", startedAt: new Date() })
+      .where(eq(schema.generations.id, generation.id));
+
+    const { ProviderError } = await import("../src/providers/provider-error");
+    await handleExhaustedRetries(
+      generation.id,
+      new ProviderError("Replicate free usage limit reached. Add billing on Replicate.", {
+        terminal: false,
+        status: 429,
+      }),
+    );
+
+    const [row] = await db.select().from(schema.generations).where(eq(schema.generations.id, generation.id));
+    expect(row!.status).toBe("failed");
+    expect(row!.errorMessage).toBe("Replicate free usage limit reached. Add billing on Replicate.");
     expect(await getBalance(db, userId)).toBe(COST);
   });
 

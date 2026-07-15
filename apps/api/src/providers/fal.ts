@@ -3,6 +3,7 @@ import type {
   VideoProviderPollResult,
   VideoProviderSubmitRequest,
 } from "@repo/shared";
+import { classifyProviderHttpError } from "./provider-error";
 
 const FAL_QUEUE_BASE = "https://queue.fal.run";
 const JOB_ID_SEP = "|||";
@@ -47,7 +48,7 @@ export class FalProvider implements VideoProvider {
       body: JSON.stringify(input),
     });
     if (!res.ok) {
-      throw new Error(`fal submit failed: ${res.status} ${await res.text()}`);
+      throw classifyProviderHttpError("fal", res.status, await res.text());
     }
     const body = (await res.json()) as { request_id: string };
     return { providerJobId: `${req.model}${JOB_ID_SEP}${body.request_id}` };

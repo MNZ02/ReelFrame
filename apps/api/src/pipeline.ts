@@ -6,6 +6,7 @@ import { schema } from "@repo/db";
 import type { VideoProviderPollResult } from "@repo/shared";
 import { db } from "./db";
 import { selectProvider } from "./providers";
+import { ProviderError } from "./providers/provider-error";
 import { MOCK_SAMPLE_URL } from "./providers/mock";
 import {
   presignGetUrl,
@@ -83,14 +84,26 @@ export async function processGeneration(generationId: string): Promise<void> {
     }
   }
 
-  const { providerJobId } = await provider.submit({
-    prompt: generation.enhancedPrompt ?? generation.prompt,
-    negativePrompt: generation.negativePrompt ?? undefined,
-    sourceImageUrl,
-    aspectRatio: generation.aspectRatio,
-    durationSecs: generation.durationSecs,
-    model: generation.model,
-  });
+  let providerJobId: string;
+  try {
+    ({ providerJobId } = await provider.submit({
+      prompt: generation.enhancedPrompt ?? generation.prompt,
+      negativePrompt: generation.negativePrompt ?? undefined,
+      sourceImageUrl,
+      aspectRatio: generation.aspectRatio,
+      durationSecs: generation.durationSecs,
+      model: generation.model,
+    }));
+  } catch (err) {
+    // Terminal provider errors (quota exhausted, bad auth, invalid request)
+    // won't succeed on retry — fail now with the clean message and refund,
+    // instead of burning pg-boss retries. Transient errors rethrow to retry.
+    if (err instanceof ProviderError && err.terminal) {
+      await failGeneration(generationId, generation.userId, generation.creditsCost, err.userMessage);
+      return;
+    }
+    throw err;
+  }
 
   await db
     .update(schema.generations)
@@ -210,13 +223,13 @@ export async function handleExhaustedRetries(generationId: string, cause: unknow
     return;
   }
 
-  const causeMessage = cause instanceof Error ? cause.message : String(cause);
-  await failGeneration(
-    generationId,
-    generation.userId,
-    generation.creditsCost,
-    `Failed after exhausting retries: ${causeMessage}`,
-  );
+  // Prefer a clean provider message; otherwise a generic user-facing line
+  // (raw errors/stack text should never reach error_message / the UI).
+  const message =
+    cause instanceof ProviderError
+      ? cause.userMessage
+      : "Generation failed after several attempts. Please try again.";
+  await failGeneration(generationId, generation.userId, generation.creditsCost, message);
 }
 
 // Exported for unit testing; also the terminal path from processGeneration.

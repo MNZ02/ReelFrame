@@ -46,7 +46,13 @@ export function GenerationCard({
           />
         ) : (
           <div className="flex size-full items-center justify-center bg-secondary/50 p-4 text-center text-xs text-muted-foreground">
-            {generation.status === "failed" ? "Generation failed" : "Rendering…"}
+            {generation.status === "failed" ? (
+              <span className="line-clamp-3 text-destructive">
+                {generation.errorMessage ?? "Generation failed"}
+              </span>
+            ) : (
+              "Rendering…"
+            )}
           </div>
         )}
         <StatusBadge status={generation.status} className="absolute top-2 right-2" />
