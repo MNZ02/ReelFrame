@@ -7,7 +7,7 @@ import type { VideoProviderPollResult } from "@repo/shared";
 import { db } from "./db";
 import { selectProvider } from "./providers";
 import { MOCK_SAMPLE_URL } from "./providers/mock";
-import { presignGetUrl, putObject, BUCKET } from "./lib/s3";
+import { presignGetUrl, presignGetUrlForProvider, putObject, BUCKET } from "./lib/s3";
 import { videoKey, thumbnailKey } from "./lib/object-keys";
 import { extractThumbnail } from "./lib/ffmpeg";
 
@@ -57,7 +57,16 @@ export async function processGeneration(generationId: string): Promise<void> {
       .select()
       .from(schema.mediaAssets)
       .where(eq(schema.mediaAssets.id, generation.sourceImageId));
-    if (asset) sourceImageUrl = await presignGetUrl(asset.objectKey);
+    // Mock ignores the URL, so keep it on the (localhost) internal endpoint;
+    // real providers must fetch it from their cloud, so sign it against the
+    // public endpoint (tunnel). The create-time guard guarantees a public
+    // endpoint exists whenever a real provider generation carries an image.
+    if (asset) {
+      sourceImageUrl =
+        generation.provider === "mock"
+          ? await presignGetUrl(asset.objectKey)
+          : await presignGetUrlForProvider(asset.objectKey);
+    }
   }
 
   const { providerJobId } = await provider.submit({

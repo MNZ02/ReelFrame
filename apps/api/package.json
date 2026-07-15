@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "check-types": "tsc --noEmit",
     "build": "tsc --noEmit",
-    "test": "bun test tests",
+    "test": "VIDEO_PROVIDER=mock bun test tests",
     "db:seed": "bun run scripts/seed.ts",
     "smoke": "bun run scripts/smoke.ts",
     "generate-sample": "bun run scripts/generate-sample.ts"

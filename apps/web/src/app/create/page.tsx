@@ -38,6 +38,15 @@ function CreateForm() {
 
   const selectedModel = models.find((m) => m.slug === model);
 
+  // The active video provider filters the model list, so the hardcoded default
+  // (or a "model" query param) may not be offered. Fall back to the first
+  // available model so the selector is never stuck on an unusable choice.
+  useEffect(() => {
+    if (models.length > 0 && !models.some((m) => m.slug === model)) {
+      setModel(models[0]!.slug);
+    }
+  }, [models, model]);
+
   useEffect(() => {
     if (selectedModel && !selectedModel.supportedAspectRatios.includes(aspectRatio)) {
       setAspectRatio(selectedModel.supportedAspectRatios[0] ?? "16:9");

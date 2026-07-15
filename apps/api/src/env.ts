@@ -15,6 +15,13 @@ export const env = {
   S3_SECRET_KEY: required("S3_SECRET_KEY"),
   S3_BUCKET: process.env.S3_BUCKET ?? "media",
   S3_REGION: process.env.S3_REGION ?? "us-east-1",
+  // Optional. A publicly reachable base URL for MinIO (e.g. a cloudflared
+  // tunnel to S3_ENDPOINT) used ONLY to presign source-image URLs handed to
+  // an external video provider — the provider's cloud servers can't reach
+  // our localhost S3_ENDPOINT. Browser-facing presigns keep using S3_ENDPOINT.
+  // Empty means image-to-video is disabled for cloud providers (see the
+  // guard in create-generation.ts).
+  S3_PUBLIC_ENDPOINT: process.env.S3_PUBLIC_ENDPOINT ?? "",
   BETTER_AUTH_SECRET: required("BETTER_AUTH_SECRET"),
   BETTER_AUTH_URL: process.env.BETTER_AUTH_URL ?? "http://localhost:4000",
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? "",

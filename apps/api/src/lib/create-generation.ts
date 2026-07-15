@@ -1,5 +1,12 @@
 import { schema } from "@repo/db";
-import { ApiError, applyMotionPreset, getCreditsCost, getModel, type AspectRatio } from "@repo/shared";
+import {
+  ApiError,
+  applyMotionPreset,
+  getCreditsCost,
+  getModel,
+  isModelAvailableForProvider,
+  type AspectRatio,
+} from "@repo/shared";
 import { db } from "../db";
 import { env } from "../env";
 import { getBalance, lockUserForCredits } from "./credits";
@@ -30,6 +37,13 @@ export async function createGeneration(input: CreateGenerationInput): Promise<Ge
   if (!modelInfo) {
     throw new ApiError("VALIDATION_ERROR", `Unknown model: ${input.model}`, 400);
   }
+  if (!isModelAvailableForProvider(input.model, env.VIDEO_PROVIDER)) {
+    throw new ApiError(
+      "VALIDATION_ERROR",
+      `Model ${input.model} is not available with the active video provider (${env.VIDEO_PROVIDER})`,
+      400,
+    );
+  }
   if (!modelInfo.supportedAspectRatios.includes(input.aspectRatio)) {
     throw new ApiError(
       "VALIDATION_ERROR",
@@ -49,6 +63,17 @@ export async function createGeneration(input: CreateGenerationInput): Promise<Ge
   if (input.sourceImageId) {
     if (!modelInfo.supportsSourceImage) {
       throw new ApiError("VALIDATION_ERROR", `Model ${input.model} does not accept a source image`, 400);
+    }
+    // A cloud provider must fetch the source image over the internet; our
+    // MinIO is on localhost, so without a public endpoint (tunnel) the
+    // provider would get a connection-refused. Fail fast here rather than
+    // enqueue a job that can only fail. Mock never fetches the URL.
+    if (env.VIDEO_PROVIDER !== "mock" && !env.S3_PUBLIC_ENDPOINT) {
+      throw new ApiError(
+        "VALIDATION_ERROR",
+        "Start images require S3_PUBLIC_ENDPOINT to be configured so the video provider can fetch the image. Run a tunnel to MinIO (e.g. cloudflared) and set S3_PUBLIC_ENDPOINT, or generate without a start image.",
+        400,
+      );
     }
     const asset = await getOwnedSourceImage(input.userId, input.sourceImageId);
     if (!asset) {
