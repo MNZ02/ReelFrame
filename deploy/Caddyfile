@@ -1,0 +1,16 @@
+# Single-origin reverse proxy. Everything under /api/* (the API's better-auth
+# handler at /api/auth/* and the /api/v1/* routes) goes to the API; everything
+# else goes to the Next.js app. Serving both from one origin means session
+# cookies and CORS "just work" — no cross-origin cookie problems.
+#
+# Bind to :80 for a bare IP. To switch to HTTPS later, replace `:80` with your
+# domain (e.g. `app.example.com`) and Caddy will provision a Let's Encrypt
+# certificate automatically.
+:80 {
+	handle /api/* {
+		reverse_proxy api:4000
+	}
+	handle {
+		reverse_proxy web:3000
+	}
+}
