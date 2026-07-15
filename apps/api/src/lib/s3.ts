@@ -7,6 +7,13 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { env } from "../env";
 
+/**
+ * The client for direct, server-side object operations (put/get/delete). Uses
+ * S3_ENDPOINT, which in a containerized deploy is the INTERNAL address (e.g.
+ * http://minio:9000) — the API/worker talk to the store directly and must not
+ * depend on the object store being reachable via the public IP (Docker hairpin
+ * NAT to the host's own public address frequently fails).
+ */
 export const s3 = new S3Client({
   endpoint: env.S3_ENDPOINT,
   region: env.S3_REGION,
@@ -18,11 +25,12 @@ export const s3 = new S3Client({
 });
 
 /**
- * A second client whose presigned URLs are signed against the public endpoint
- * (e.g. a cloudflared tunnel), for URLs an external provider must fetch. Only
- * constructed when S3_PUBLIC_ENDPOINT is set. Presigning is host-sensitive —
- * the SigV4 signature covers the Host header — so this cannot be a string
- * swap on a URL signed for localhost; it must be signed for the public host.
+ * A second client whose presigned URLs are signed against the PUBLIC endpoint
+ * (S3_PUBLIC_ENDPOINT — a real public host/IP in prod, a cloudflared tunnel in
+ * local image-to-video). Only constructed when set. Presigning is
+ * host-sensitive — the SigV4 signature covers the Host header — so a presigned
+ * URL must be signed for the exact host the client (browser or provider) will
+ * request; it cannot be string-swapped after signing.
  */
 const s3Public = env.S3_PUBLIC_ENDPOINT
   ? new S3Client({
@@ -36,6 +44,13 @@ const s3Public = env.S3_PUBLIC_ENDPOINT
     })
   : null;
 
+/**
+ * Client for signing URLs a BROWSER will fetch (uploads, playback, thumbnails).
+ * Prefers the public endpoint so the signed host is reachable off-box; falls
+ * back to the internal client for local dev, where they are the same host.
+ */
+const s3ForBrowser = s3Public ?? s3;
+
 export const BUCKET = env.S3_BUCKET;
 
 export const hasPublicEndpoint = s3Public !== null;
@@ -46,7 +61,7 @@ export async function presignPutUrl(objectKey: string, contentType: string, expi
     Key: objectKey,
     ContentType: contentType,
   });
-  return getSignedUrl(s3, command, { expiresIn: expiresInSeconds });
+  return getSignedUrl(s3ForBrowser, command, { expiresIn: expiresInSeconds });
 }
 
 export async function presignGetUrl(objectKey: string, expiresInSeconds = 900): Promise<string> {
@@ -54,7 +69,7 @@ export async function presignGetUrl(objectKey: string, expiresInSeconds = 900): 
     Bucket: BUCKET,
     Key: objectKey,
   });
-  return getSignedUrl(s3, command, { expiresIn: expiresInSeconds });
+  return getSignedUrl(s3ForBrowser, command, { expiresIn: expiresInSeconds });
 }
 
 /**
