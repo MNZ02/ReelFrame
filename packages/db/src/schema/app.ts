@@ -37,6 +37,7 @@ export const generationStatusEnum = pgEnum("generation_status", [
 export const generationProviderEnum = pgEnum("generation_provider", [
   "fal",
   "mock",
+  "replicate",
 ]);
 
 export const aspectRatioEnum = pgEnum("aspect_ratio", ["16:9", "9:16", "1:1"]);

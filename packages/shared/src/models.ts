@@ -24,6 +24,19 @@ export const VIDEO_MODELS: VideoModel[] = [
     supportedAspectRatios: ["16:9", "9:16", "1:1"],
     supportsSourceImage: true,
   },
+  {
+    slug: "minimax/video-01",
+    name: "Minimax Video-01 (Replicate)",
+    description:
+      "Replicate free-run tier model, text- or image-to-video. Always renders " +
+      "a fixed ~6s clip regardless of the requested duration or aspect ratio " +
+      "(the model controls both) — ReplicateProvider clamps/ignores those " +
+      "fields accordingly. Flat cost for either duration option since actual " +
+      "output length doesn't vary.",
+    creditsCostPerGeneration: { "5": 10, "10": 10 },
+    supportedAspectRatios: ["16:9", "9:16", "1:1"],
+    supportsSourceImage: true,
+  },
 ];
 
 export const DEFAULT_MODEL_SLUG = "kling-video/v1.6/standard";

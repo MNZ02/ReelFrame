@@ -161,4 +161,28 @@ describe("createGeneration business-rule validation (catalog, not shape)", () =>
     const rows = await db.select().from(schema.generations).where(eq(schema.generations.userId, userId));
     expect(rows).toHaveLength(1);
   });
+
+  test("creating a generation with minimax/video-01 debits its catalog cost (10 credits)", async () => {
+    const userId = await freshUser(1000);
+    const cost = getCreditsCost("minimax/video-01", 5)!;
+    expect(cost).toBe(10);
+
+    const generation = await createGeneration({
+      userId,
+      prompt: "a drone shot over a canyon",
+      model: "minimax/video-01",
+      aspectRatio: "16:9",
+      durationSecs: 5,
+    });
+    expect(generation.status).toBe("queued");
+    expect(generation.model).toBe("minimax/video-01");
+    expect(generation.creditsCost).toBe(10);
+
+    const balance = await db
+      .select()
+      .from(schema.creditLedger)
+      .where(eq(schema.creditLedger.userId, userId));
+    const totalDelta = balance.reduce((sum, row) => sum + row.delta, 0);
+    expect(totalDelta).toBe(1000 - 10);
+  });
 });

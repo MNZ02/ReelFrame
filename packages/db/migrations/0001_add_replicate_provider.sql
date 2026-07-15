@@ -1,0 +1,1 @@
+ALTER TYPE "public"."generation_provider" ADD VALUE 'replicate';

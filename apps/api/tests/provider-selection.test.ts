@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { selectProvider, MockProvider, FalProvider } from "../src/providers";
+import { selectProvider, MockProvider, FalProvider, ReplicateProvider } from "../src/providers";
 
 describe("VIDEO_PROVIDER selection (acceptance #9: env switch, zero code changes)", () => {
   test("selectProvider('mock') returns a MockProvider", () => {
@@ -14,8 +14,26 @@ describe("VIDEO_PROVIDER selection (acceptance #9: env switch, zero code changes
     expect(provider.name).toBe("fal");
   });
 
-  test("anything other than 'fal' falls back to MockProvider (mock is the safe default)", () => {
+  test("selectProvider('replicate') returns a ReplicateProvider without requiring REPLICATE_API_TOKEN at construction time", () => {
+    const provider = selectProvider("replicate");
+    expect(provider).toBeInstanceOf(ReplicateProvider);
+    expect(provider.name).toBe("replicate");
+  });
+
+  test("anything other than 'fal'/'replicate' falls back to MockProvider (mock is the safe default)", () => {
     expect(selectProvider("something-unknown")).toBeInstanceOf(MockProvider);
+  });
+
+  test("ReplicateProvider.submit rejects immediately (no network call) when the token is empty", async () => {
+    const provider = new ReplicateProvider("");
+    await expect(
+      provider.submit({
+        prompt: "test",
+        aspectRatio: "16:9",
+        durationSecs: 5,
+        model: "minimax/video-01",
+      }),
+    ).rejects.toThrow(/REPLICATE_API_TOKEN/);
   });
 
   test("FalProvider.submit rejects immediately (no network call) when FAL_KEY is empty", async () => {

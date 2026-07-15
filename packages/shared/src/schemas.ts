@@ -93,7 +93,7 @@ export const generationResponseSchema = z.object({
   enhancedPrompt: z.string().nullable(),
   motionPreset: z.string().nullable(),
   model: z.string(),
-  provider: z.enum(["fal", "mock"]),
+  provider: z.enum(["fal", "mock", "replicate"]),
   aspectRatio: aspectRatioSchema,
   durationSecs: z.number(),
   creditsCost: z.number(),

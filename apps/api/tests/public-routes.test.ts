@@ -65,6 +65,13 @@ describe("public (unauthenticated) route access", () => {
     expect(body.length).toBeGreaterThan(0);
   });
 
+  test("GET /api/v1/models includes the replicate minimax/video-01 catalog entry", async () => {
+    const res = await app.request("/api/v1/models");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as Array<{ slug: string }>;
+    expect(body.some((m) => m.slug === "minimax/video-01")).toBe(true);
+  });
+
   test("a session-gated route (GET /api/v1/generations) still returns 401 with no session cookie", async () => {
     const res = await app.request("/api/v1/generations");
     expect(res.status).toBe(401);

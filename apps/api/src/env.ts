@@ -19,8 +19,16 @@ export const env = {
   BETTER_AUTH_URL: process.env.BETTER_AUTH_URL ?? "http://localhost:4000",
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? "",
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? "",
-  VIDEO_PROVIDER: (process.env.VIDEO_PROVIDER ?? "mock") as "mock" | "fal",
+  VIDEO_PROVIDER: (process.env.VIDEO_PROVIDER ?? "mock") as "mock" | "fal" | "replicate",
   FAL_KEY: process.env.FAL_KEY ?? "",
+  // Only required when VIDEO_PROVIDER=replicate, so mock/fal setups never
+  // need it. Checked here (module load = process startup) rather than lazily
+  // like FAL_KEY, so a misconfigured replicate deployment fails immediately
+  // instead of on the first generation.
+  REPLICATE_API_TOKEN:
+    (process.env.VIDEO_PROVIDER ?? "mock") === "replicate"
+      ? required("REPLICATE_API_TOKEN")
+      : (process.env.REPLICATE_API_TOKEN ?? ""),
   API_PORT: Number(process.env.API_PORT ?? 4000),
   WEB_URL: process.env.WEB_URL ?? "http://localhost:3000",
 } as const;
