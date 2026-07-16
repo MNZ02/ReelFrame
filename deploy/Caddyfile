@@ -1,13 +1,24 @@
-# The web app now lives on Vercel; the VM only fronts the API.
+# The web app now lives on Vercel; the VM fronts the API and (interim) MinIO.
 #
-# `92-4-85-148.sslip.io` is a real DNS name that resolves to this VM's public
-# IP (92.4.85.148), so Caddy can provision a Let's Encrypt certificate
-# automatically — HTTP-01 challenge on :80, TLS served on :443. HTTPS is
-# required because the cross-site session cookie is Secure and the browser
-# won't send it to (or accept it from) a plaintext origin.
+# Both hostnames are sslip.io names that resolve to this VM's public IP
+# (92.4.85.148), so Caddy provisions a Let's Encrypt cert for each
+# automatically — HTTP-01 challenge on :80, TLS on :443. HTTPS is required
+# because the web app is HTTPS and the browser blocks plaintext (mixed
+# content) for both API calls (Secure cookies) and media (presigned URLs).
 #
-# When you get a real domain, replace the hostname below and set WEB_URL /
-# NEXT_PUBLIC_API_URL accordingly.
+# When you get a real domain, replace the hostnames and update WEB_URL /
+# NEXT_PUBLIC_API_URL / S3_PUBLIC_ENDPOINT accordingly.
+
+# --- API ---
 92-4-85-148.sslip.io {
 	reverse_proxy api:4000
+}
+
+# --- MinIO / S3 over HTTPS (interim, until media moves to Cloudflare R2) ---
+# Presigned URLs are signed against this exact host (S3_PUBLIC_ENDPOINT in
+# .env). Caddy preserves the incoming Host header to the upstream by default,
+# so MinIO's SigV4 validation matches and presigned GET/PUT succeed. Path-style
+# URLs (forcePathStyle) route fine, and Caddy streams range requests for video.
+s3.92-4-85-148.sslip.io {
+	reverse_proxy minio:9000
 }
