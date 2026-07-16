@@ -1,5 +1,24 @@
 # Spec 00 — Initial Video App (Higgsfield Clone, Phase 1)
 
+> **Status:** Original Phase 1 product spec. Implemented on `main` as **ReelFrame**
+> ([github.com/MNZ02/ReelFrame](https://github.com/MNZ02/ReelFrame)).
+>
+> For living engineering docs (as-built), start here:
+>
+> | Doc | Topic |
+> |-----|--------|
+> | [01-architecture](./01-architecture.md) | Processes, auth, storage, deploy shapes |
+> | [02-data-model](./02-data-model.md) | Postgres schema & credits |
+> | [03-api](./03-api.md) | HTTP API reference |
+> | [04-frontend](./04-frontend.md) | Web app routes & data layer |
+> | [05-generation-pipeline](./05-generation-pipeline.md) | Worker, providers, presets |
+> | [06-contributing](./06-contributing.md) | How to contribute |
+>
+> Notable deltas since this draft: product name **ReelFrame**; **Replicate**
+> provider + Minimax model; Next.js **same-origin `/api` rewrite** for cookies;
+> optional LLM prompt enhancer; production compose / Vercel+Neon+R2 notes in
+> `deploy/`. Prefer the numbered specs + code when they disagree with details below.
+
 ## Overview
 
 A 1:1-as-possible clone of [Higgsfield](https://higgsfield.ai): an AI video
