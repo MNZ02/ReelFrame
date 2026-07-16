@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -9,15 +9,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { authClient } from "@/lib/auth-client";
+import { authClient, useSession } from "@/lib/auth-client";
 
 export default function SignupPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { data: session, isPending: sessionPending } = useSession();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!sessionPending && session?.user) {
+      router.replace("/create");
+    }
+  }, [sessionPending, session, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,6 +39,16 @@ export default function SignupPage() {
     toast.success("Account created — 100 credits added");
     router.push("/create");
     router.refresh();
+  }
+
+  if (sessionPending || session?.user) {
+    return (
+      <div className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center px-4 py-12">
+        <p className="text-sm text-muted-foreground">
+          {session?.user ? "Redirecting…" : "Checking session…"}
+        </p>
+      </div>
+    );
   }
 
   return (

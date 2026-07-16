@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -9,15 +9,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { authClient } from "@/lib/auth-client";
+import { authClient, useSession } from "@/lib/auth-client";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const { data: session, isPending: sessionPending } = useSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const redirectTo = searchParams.get("redirect") ?? "/create";
+
+  // Already signed in (e.g. landed here after a broken middleware cookie
+  // check, or revisited /login) — send them where they wanted to go.
+  useEffect(() => {
+    if (!sessionPending && session?.user) {
+      router.replace(redirectTo);
+    }
+  }, [sessionPending, session, redirectTo, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -30,8 +41,16 @@ function LoginForm() {
     }
     await queryClient.invalidateQueries();
     toast.success("Welcome back");
-    router.push(searchParams.get("redirect") ?? "/create");
+    router.push(redirectTo);
     router.refresh();
+  }
+
+  if (sessionPending || session?.user) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        {session?.user ? "Redirecting…" : "Checking session…"}
+      </p>
+    );
   }
 
   return (
