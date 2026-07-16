@@ -1,6 +1,15 @@
 import type { ApiErrorResponse } from "@repo/shared";
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+/**
+ * API origin for browser fetches.
+ *
+ * Empty string = same origin. Next.js rewrites `/api/*` to the real API
+ * (`NEXT_PUBLIC_API_URL`), so the better-auth session cookie is first-party
+ * on the web host. Calling the API host directly would set a cross-site
+ * cookie that Chrome/Safari often refuse to store — login "succeeds" then
+ * RequireAuth bounces the user back to /login.
+ */
+export const API_URL = "";
 
 /**
  * Thrown for any non-2xx response from the API. `code` is one of

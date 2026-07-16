@@ -7,10 +7,9 @@ import { useMe } from "@/lib/hooks/use-me";
 /**
  * Client-side gate for pages that need a session.
  *
- * Next.js middleware cannot see the better-auth cookie: the web app (Vercel)
- * and API (separate host) are different origins, so the session cookie is set
- * on the API domain only. Auth is therefore checked here via useSession(),
- * which calls the API with credentials: "include".
+ * Session cookies are first-party on the web origin (Next rewrites proxy
+ * `/api/*` to the API). Auth is checked here via useSession() rather than
+ * middleware so the check runs after the client can read the cookie.
  */
 export function RequireAuth({ children }: { children: React.ReactNode }) {
   const router = useRouter();

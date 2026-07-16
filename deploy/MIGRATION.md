@@ -96,16 +96,14 @@ cross-site auth cookies work.
 
 ## Phase 3 — VM: slim down to API + worker + Caddy
 
-### 3a. Code change — cross-site auth cookies
-`apps/api/src/auth.ts`:
-```diff
- defaultCookieAttributes: {
--  sameSite: "lax",
--  secure: false,
-+  sameSite: "none",
-+  secure: true,
- },
-```
+### 3a. Code change — same-origin auth proxy (web)
+Cross-site cookies (web on Vercel, API on another host) are blocked by
+modern browsers. The web app must proxy `/api/*` to the API so the session
+cookie is first-party:
+
+- `apps/web/next.config.ts` — rewrite `/api/:path*` → `${NEXT_PUBLIC_API_URL}/api/:path*`
+- `apps/web/src/lib/api.ts` / `auth-client.ts` — call same-origin `/api/...` (no absolute API URL in the browser)
+- `apps/api/src/auth.ts` — `sameSite: "lax"`, `secure` when `BETTER_AUTH_URL` is https
 
 ### 3b. Caddyfile — TLS-terminate + proxy the API only
 Replace `deploy/Caddyfile` with:

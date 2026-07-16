@@ -34,9 +34,17 @@ function LoginForm() {
     e.preventDefault();
     setLoading(true);
     const { error } = await authClient.signIn.email({ email, password });
-    setLoading(false);
     if (error) {
+      setLoading(false);
       toast.error(error.message ?? "Could not log in");
+      return;
+    }
+    // Confirm the session cookie landed (same-origin proxy) before leaving
+    // /login — otherwise RequireAuth on /create bounces us straight back.
+    const { data: nextSession } = await authClient.getSession();
+    setLoading(false);
+    if (!nextSession?.user) {
+      toast.error("Signed in, but the session cookie was not stored. Please try again.");
       return;
     }
     await queryClient.invalidateQueries();

@@ -33,13 +33,12 @@ export const auth = betterAuth({
       }
     : undefined,
   advanced: {
-    // Web (Vercel) and API (VM) are on different origins, so the session
-    // cookie is cross-site: it must be SameSite=None and Secure, which is
-    // why the API is served over HTTPS (Caddy/sslip.io). With Secure cookies
-    // the browser also requires the API itself to be HTTPS.
+    // Browser hits the web origin; Next.js rewrites /api/* to this API so the
+    // session cookie is first-party (SameSite=Lax is enough). Secure only when
+    // the public API URL is HTTPS — Secure cookies are dropped on http://localhost.
     defaultCookieAttributes: {
-      sameSite: "none",
-      secure: true,
+      sameSite: "lax",
+      secure: env.BETTER_AUTH_URL.startsWith("https://"),
     },
   },
   databaseHooks: {

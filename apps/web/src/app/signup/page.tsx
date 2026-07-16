@@ -30,9 +30,15 @@ export default function SignupPage() {
     e.preventDefault();
     setLoading(true);
     const { error } = await authClient.signUp.email({ name, email, password });
-    setLoading(false);
     if (error) {
+      setLoading(false);
       toast.error(error.message ?? "Could not sign up");
+      return;
+    }
+    const { data: nextSession } = await authClient.getSession();
+    setLoading(false);
+    if (!nextSession?.user) {
+      toast.error("Account created, but the session cookie was not stored. Try logging in.");
       return;
     }
     await queryClient.invalidateQueries();
