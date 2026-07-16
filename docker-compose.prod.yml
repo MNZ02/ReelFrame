@@ -1,13 +1,14 @@
-# Production stack for a single VM (all-in-one). Brings up Postgres, MinIO,
-# the API + worker, the Next.js web app, and a Caddy reverse proxy.
+# Production stack for the VM. Brings up Postgres, MinIO, the API + worker, and
+# a Caddy reverse proxy. The web app now runs on Vercel (not here); Caddy only
+# fronts the API, over HTTPS at the sslip.io hostname in deploy/Caddyfile.
 #
 #   cp .env.prod.example .env   # then fill in secrets + your public IP/domain
 #   docker compose -f docker-compose.prod.yml up -d --build
 #   docker compose -f docker-compose.prod.yml run --rm api bun run db:migrate
 #
-# Only ports 80 (app) and 9000 (MinIO S3 API, for browser uploads/playback and
-# the video provider) are published; Postgres/API/web stay on the internal
-# network.
+# Published ports: 80 + 443 (Caddy → API; 80 is for the Let's Encrypt HTTP-01
+# challenge) and 9000 (MinIO S3 API — browser uploads/playback + the video
+# provider fetch from it). Postgres/API stay on the internal network.
 name: reelframe
 
 services:
@@ -84,28 +85,19 @@ services:
         condition: service_healthy
     command: ["bun", "run", "start:worker"]
 
-  web:
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
-      args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?set NEXT_PUBLIC_API_URL in .env}
-    image: reelframe-web
-    restart: unless-stopped
-    depends_on:
-      - api
+  # The web app is deployed on Vercel now — no web container on the VM.
 
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "80:80" # required for the Let's Encrypt HTTP-01 challenge
+      - "443:443" # HTTPS for the API (browser + provider reach it here)
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddydata:/data
       - caddyconfig:/config
     depends_on:
-      - web
       - api
 
 volumes:

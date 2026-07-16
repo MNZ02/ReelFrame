@@ -1,16 +1,13 @@
-# Single-origin reverse proxy. Everything under /api/* (the API's better-auth
-# handler at /api/auth/* and the /api/v1/* routes) goes to the API; everything
-# else goes to the Next.js app. Serving both from one origin means session
-# cookies and CORS "just work" — no cross-origin cookie problems.
+# The web app now lives on Vercel; the VM only fronts the API.
 #
-# Bind to :80 for a bare IP. To switch to HTTPS later, replace `:80` with your
-# domain (e.g. `app.example.com`) and Caddy will provision a Let's Encrypt
-# certificate automatically.
-:80 {
-	handle /api/* {
-		reverse_proxy api:4000
-	}
-	handle {
-		reverse_proxy web:3000
-	}
+# `92-4-85-148.sslip.io` is a real DNS name that resolves to this VM's public
+# IP (92.4.85.148), so Caddy can provision a Let's Encrypt certificate
+# automatically — HTTP-01 challenge on :80, TLS served on :443. HTTPS is
+# required because the cross-site session cookie is Secure and the browser
+# won't send it to (or accept it from) a plaintext origin.
+#
+# When you get a real domain, replace the hostname below and set WEB_URL /
+# NEXT_PUBLIC_API_URL accordingly.
+92-4-85-148.sslip.io {
+	reverse_proxy api:4000
 }

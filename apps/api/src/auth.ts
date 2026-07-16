@@ -33,9 +33,13 @@ export const auth = betterAuth({
       }
     : undefined,
   advanced: {
+    // Web (Vercel) and API (VM) are on different origins, so the session
+    // cookie is cross-site: it must be SameSite=None and Secure, which is
+    // why the API is served over HTTPS (Caddy/sslip.io). With Secure cookies
+    // the browser also requires the API itself to be HTTPS.
     defaultCookieAttributes: {
-      sameSite: "lax",
-      secure: false,
+      sameSite: "none",
+      secure: true,
     },
   },
   databaseHooks: {
