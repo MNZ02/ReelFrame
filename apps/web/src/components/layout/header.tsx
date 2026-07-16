@@ -16,6 +16,7 @@ const NAV_LINKS = [
   { href: "/create", label: "Create" },
   { href: "/library", label: "Library" },
   { href: "/characters", label: "Characters" },
+  { href: "/profile", label: "Profile" },
 ];
 
 export function Header() {
