@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { Clapperboard, Coins, LogOut } from "lucide-react";
+import { Clapperboard, Coins, LogOut, User } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,6 @@ const NAV_LINKS = [
   { href: "/create", label: "Create" },
   { href: "/library", label: "Library" },
   { href: "/characters", label: "Characters" },
-  { href: "/profile", label: "Profile" },
 ];
 
 export function Header() {
@@ -68,6 +67,16 @@ export function Header() {
               <span className="hidden text-sm text-muted-foreground md:inline">
                 {session?.user.name}
               </span>
+              <Link href="/profile">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  title="Profile"
+                  className={cn(pathname === "/profile" && "bg-secondary text-foreground")}
+                >
+                  <User className="size-4" />
+                </Button>
+              </Link>
               <Button variant="ghost" size="icon" onClick={handleLogout} title="Log out">
                 <LogOut className="size-4" />
               </Button>
